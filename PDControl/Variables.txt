@@ -1,0 +1,33 @@
+Variables
+
+static const int leftMotor_pin;
+static const int rightMotor_pin;
+
+static const int leftQRD_pin;
+static const int rightQRD_pin;
+
+
+int bothQRD_thresh;
+int leftQRD_curVal
+int rightQRD_curVal;
+
+int error_curVal;
+int error_lastVal;
+int error_timeInErrorState;
+int error_slopeChangeFromLastError;
+
+int proportional_gain
+int derivative_gain;
+int proportional_curVal;
+int derivative_curVal;
+
+int motorSpeed_offset;
+int motorSpeed_base;
+
+int userSet;
+int menuState;
+bool editable;
+bool startButtonState;
+bool stopButtonState;
+
+int timeTicker;
