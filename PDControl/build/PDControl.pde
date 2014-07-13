@@ -3,15 +3,11 @@
 #include <servo253.h>       //***** from 253 template file
 
 
-#include "WProgram.h"
-#include <HardwareSerial.h>
-void setup();
-void loop();
-static const int leftMotor_pin = 0;
-static const int rightMotor_pin = 1;
+#define LEFTMOTOR_PIN 0
+#define RIGHTMOTOR_PIN 1
 
-static const int leftQRD_pin = 4;
-static const int rightQRD_pin = 5;
+#define leftQRD_PIN 4
+#define RIGHTQRD_PIN 5
 
 
 int bothQRD_thresh = 300;
@@ -34,8 +30,8 @@ int timeTicker = 0;
 
 
 void setup() {
-    portMode(leftQRD_pin, INPUT);
-    portMode(rightQRD_pin, INPUT);
+    portMode(leftQRD_PIN, INPUT);
+    portMode(RIGHTQRD_PIN, INPUT);
     
 }
 
@@ -43,8 +39,8 @@ void loop() {
 
     // Read QRD values
 
-    leftQRD_curVal = analogRead(leftQRD_pin);
-    rightQRD_curVal = analogRead(rightQRD_pin);
+    leftQRD_curVal = analogRead(leftQRD_PIN);
+    rightQRD_curVal = analogRead(RIGHTQRD_PIN);
 
 
     // Get tape following status
@@ -195,18 +191,18 @@ void loop() {
     // Set motor speeds
 
     if (motorSpeed_offset < -700) {
-        motor.speed(leftMotor_pin, 700);
-        motor.speed(rightMotor_pin, motorSpeed_base);
+        motor.speed(LEFTMOTOR_PIN, 700);
+        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base);
         LCD.clear();
         LCD.print("LIM-");
     } else if (motorSpeed_offset > 700) {
-        motor.speed(leftMotor_pin, motorSpeed_base);
-        motor.speed(rightMotor_pin, 700);
+        motor.speed(LEFTMOTOR_PIN, motorSpeed_base);
+        motor.speed(RIGHTMOTOR_PIN, 700);
         LCD.clear();
         LCD.print("LIM+");
     } else {
-        motor.speed(leftMotor_pin, motorSpeed_base - motorSpeed_offset);
-        motor.speed(rightMotor_pin, motorSpeed_base + motorSpeed_offset);
+        motor.speed(LEFTMOTOR_PIN, motorSpeed_base - motorSpeed_offset);
+        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base + motorSpeed_offset);
     }
 
 
@@ -216,9 +212,3 @@ void loop() {
     timeTicker++;
     error_timeInErrorState++;
 }
-
-
-
-// idea: make values adjustable up and down for slight increments dependent on knob position
-// press edit again to make them dependent on knob entirely
-

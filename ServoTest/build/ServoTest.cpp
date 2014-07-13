@@ -4,6 +4,11 @@
 
 #define MOTOR_NUM 0
 
+#include "WProgram.h"
+#include <HardwareSerial.h>
+void setup();
+void loop();
+int powerForKnob();
 void setup()
 {
   portMode(0, OUTPUT) ;      //   ***** from 253 template file
@@ -34,3 +39,4 @@ int powerForKnob()
   int power = 2 * knob(6) - 1023;
   return power;
 }
+
