@@ -1,3 +1,16 @@
+Pins
+
+Analog 4: QRD_Left
+Analog 5: QRD_Right
+
+Analog 6: Knob1
+Analog 7: Knob2
+
+Motor 0: Motor_Left
+Motor 1: Motor_Right
+
+
+
 Variables
 
 static const int leftMotor_pin;

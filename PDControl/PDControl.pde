@@ -6,8 +6,10 @@
 #define LEFTMOTOR_PIN 0
 #define RIGHTMOTOR_PIN 1
 
-#define leftQRD_PIN 4
+#define LEFTQRD_PIN 4
 #define RIGHTQRD_PIN 5
+
+//define pins here
 
 
 int bothQRD_thresh = 300;
@@ -30,7 +32,7 @@ int timeTicker = 0;
 
 
 void setup() {
-    portMode(leftQRD_PIN, INPUT);
+    portMode(LEFTQRD_PIN, INPUT);
     portMode(RIGHTQRD_PIN, INPUT);
     
 }
@@ -39,7 +41,7 @@ void loop() {
 
     // Read QRD values
 
-    leftQRD_curVal = analogRead(leftQRD_PIN);
+    leftQRD_curVal = analogRead(LEFTQRD_PIN);
     rightQRD_curVal = analogRead(RIGHTQRD_PIN);
 
 

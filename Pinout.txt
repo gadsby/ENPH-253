@@ -1,0 +1,36 @@
+Pinout Guide
+
+Analog 0: ---
+Analog 1: ---
+Analog 2: ---
+Analog 3: ---
+Analog 4: QRD_Left
+Analog 5: QRD_Right
+Analog 6: Knob_1
+Analog 7: Knob_2
+
+Motor 0: Motor_Left_Bridge
+Motor 1: Motor_Right_Bridge
+Motor 2: ---
+Motor 3: ---
+
+Servo 0: Collector_Rotation
+Servo 1: Sweeper_Rotation
+Servo 2: ---
+
+Digital 0: ---
+Digital 1: ---
+Digital 2: ---
+Digital 3: ---
+Digital 4: ---
+Digital 5: ---
+Digital 6: ---
+Digital 7: ---
+Digital 8: ---
+Digital 9: ---
+Digital 10: ---
+Digital 11: ---
+Digital 12: ---
+Digital 13: ---
+Digital 14: ---
+Digital 15: ---

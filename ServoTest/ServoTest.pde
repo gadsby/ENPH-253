@@ -15,9 +15,6 @@ void setup()
  
 }
 
-
-
-
 void loop()
 {
   int mspeed = powerForKnob();
