@@ -1,0 +1,45 @@
+
+
+
+	LEFT		MID			RIGHT 		LAST 		ERROR
+1) 	0			1			0			-			0									// go straight
+2) 	1			1			1			- 			0									// go straight
+
+3) 	0			1			1			-			LEFT * smallErrorMultiplier			// go slight left
+4) 	1			1			0			-			RIGHT * smallErrorMultiplier		// go slight right
+
+5) 	1			0			0			-			LEFT * midErrorMultiplier			// go medium right
+6) 	0			0			1			-			RIGHT * midErrorMultiplier			// go medium left
+
+7) 	0			0			0			L			LEFT * largeErrorMultiplier			// go hard right
+8) 	0			0			0			R 			RIGHT * largeErrorMultiplier		// go hard left
+9)  0			0			0			C 			0									// go straight
+
+
+
+if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+    error_curVal = 0;
+
+} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+    error_curVal = 0;
+
+} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+    error_curVal = LEFT * smallErrorMultiplier;
+
+} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+    error_curVal = RIGHT * smallErrorMultiplier;
+
+} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+    error_curVal = RIGHT * midErrorMultiplier;
+
+} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+    error_curVal = LEFT * midErrorMultiplier;
+
+} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+  if (error_lastVal > (RIGHT-1)) {
+      error_curVal = RIGHT * largeErrorMultiplier;
+
+  } else {
+      error_curVal = LEFT * largeErrorMultiplier;
+  }
+}

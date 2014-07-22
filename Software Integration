@@ -1,0 +1,102 @@
+Software Integration
+
+define all pins with coherent names
+
+Scrolling Modes (adjust with knob1)
+Adjustable Values (adjust with knob2)
+
+All repeated functions are endable
+All menus can go back
+
+ACTUAL FUNCTIONS
+initializeConstants() // put all parameter definitions into one function and make it global (optional: turn this into a library, or use EEPROM)
+startTapeFollowing() // begin moving and tape following
+findTape() // used if tape is completely lost and robot can't find it
+detectIdol() // if trigger is depressed, tell program that idol needs to be collected
+collectIdol() // stop, acquire idol, deposit into holding area
+activateIdolPusher() // remove idol from collector arm
+startIRDetect() // end tape following and begin IR detection over rocks
+collectLastIdol() // use IR, edge detection, and normal collection methods to pick up last idol
+findZipline() // figure out where zipline is and position robot for riding
+jumpOntoZipline() // leap onto zipline
+ride2Victory() // while on zipline, celebrate
+
+
+DEMO FUNCTIONS (put these in a menu and activate on button press; can have sub menus)
+testHBridge() // move forward, move back, turn right, turn left, all on low speed; repeat on high speed
+testTapeFollowing()
+testSwitches() // display which switch was just turned on or off
+testServos() // choose a servo, run through full range of motion
+testQRDs() // display on or off tape (optional: rig LED setup to make this easier if digital outputs available)
+testIR() // test strength of IR detection
+testTelescopingArm() // move telescoping arm up and down
+testZiplineTrigger() // hop robot onto zipline
+
+
+Idea: Implement timer when code will activate moving parts
+
+
+ROBUST MENU SYSTEM
+===================
+
+1) Competition Mode // fully autonomous operation
+
+2) Demo Mode
+	a) Test H-Bridges?
+	b) Test Tape Following?
+	c) Test Switches?
+	d) Test Servos?
+		i)		Collector Servo?
+		ii) 	Idol Pusher Servo?	
+	e) Test QRDs?
+	f) Test IR Sensors?
+		i)		Test Both?
+		ii) 	Test Left?
+		iii) 	Test Right?
+	g) Test Telescoping Arm?
+	h) Test Zipline Trigger?
+	i) Test Idol Collection?
+
+3) Adjust Parameters // Make parameters adjustable, save to memory, let user see old value as they change it, let cancel happen
+// clean this up to make submenus
+// knob increments by 5
+	a) Proportional Gain
+	b) Derivative Gain
+	c) QRD Threshold
+	d) Base Motor Speed
+	e) Resting Collector Angle											/********/
+	f) Highest Collector Angle											/********/
+	g) Lowest Collector Angle											/********/
+	h) Resting Sweeper Angle											/********/
+	i) Highest Sweeper Angle											/********/
+	j) Lowest Sweeper Angle												/********/
+	k) 
+	l) 
+
+4) Look Up Pins (Scroll through pins 2 at a time)
+	a) Analog?
+	b) Digital?
+	c) Servo?
+	d) Motor?
+
+
+
+
+
+IDEAS
+======
+
+1) Make function that saves variables to EEPROM and recall values from main code
+	- Only need to run once, then main code can access EEPROM values (DONE)
+2) Implement page system if number of items in menu exceeds 9 (DONE)
+3) During autonomous mode, make visually obvious cues like hashes on sides to show which way robot is being told to go (DONE)
+
+
+TODAY
+======
+
+1) Start Working on Autonomous Mode (Drive, Collect Idol, Continue Over Rocks) (GOOD)
+2) Deal w/ Conveyor Belt (Run for short time after each idol is collected and add to idol code, or run continuously?)
+3) Make idol collection breakable
+4) Make a transition for tapeAndIdols() to 	IRFollow()
+

@@ -1,0 +1,251 @@
+\documentclass[aspectratio=1610]{beamer}
+\usepackage[3D]{movie15}
+\usepackage{hyperref, graphicx}
+\mode<presentation>
+
+\title{ENPH 253: \textit{El Buscador Del Oro}}
+\date{\today}
+
+\author{Reily Blackner \and Tyson Costa \\ \and Todd Darcie \and Oliver Gadsby}
+\institute{University of British Columbia}
+
+
+
+\usecolortheme{whale}
+\setbeamercolor{structure}{fg=beamer@blendedblue}
+\definecolor{beamer@blendedblue}{rgb}{0.137,0.466,0.741}
+
+\setbeamertemplate{footline}%{miniframes theme}
+  {
+    \begin{beamercolorbox}[colsep=1.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,
+      leftskip=.3cm,rightskip=.3cm plus1fil]{author in head/foot}
+      \leavevmode{\usebeamerfont{author in head/foot}\insertshortauthor}
+      \hfill
+      {\usebeamerfont{institute in head/foot}\usebeamercolor[fg]{institute in head/foot}\insertshortinstitute}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,
+      leftskip=.3cm,rightskip=.3cm plus1fil]{title in head/foot}
+      {\usebeamerfont{title in head/foot}\insertshorttitle} \hfill     \insertframenumber
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[colsep=1.5pt]{lower separation line foot}
+    \end{beamercolorbox}
+  }
+
+
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%  Slide Name: Introduction
+%  - talk about challenge objective, our robot, specifics of robot
+\begin{frame}{Introduction}
+  \begin{itemize}
+    \item Challenge Objective
+    \item Challenge Surface
+    \item Overview of Robot
+      \begin{itemize}
+        \item Chassis and Drive System
+        \item Idol Retrieval System (I.R.S.)
+        \item Telescoping Return Mechanism (T.R.M.)
+        \item Electrical Components
+        \item Software Design
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+% put picture here on right side
+
+\begin{frame}{Challenge Objective}
+  \begin{itemize}
+    \item Tape Follow
+    \item Collect Artifacts
+    \item Detect and Follow IR
+    \item Return to Start with Artifacts and Golden Idol
+  \end{itemize}
+\end{frame}
+% picture of artifact on right side
+
+\begin{frame}{Challenge Surface Flythrough}
+3D Model Goes Here
+\end{frame}
+
+\begin{frame}{\textit{El Buscador del Oro}}
+3D Model Goes Here and Talk about Design Strategy
+\end{frame}
+
+\begin{frame}{Chassis and Drive System}
+  \begin{itemize}
+    \item Gearbox and Motors
+    \item Wheels and Sleds
+    \item Suspension
+  \end{itemize}
+\end{frame}
+% 3D Model of Chassis
+
+\begin{frame}{Idol Retrieval System (I.R.S.)}
+  \begin{itemize}
+    \item Collector Arm
+    \item Sweeper Arm
+    \item Basket and Conveyor Belt
+  \end{itemize}
+\end{frame}
+% 3D Model of IRS
+
+\begin{frame}{Telescoping Return Mechanism (T.R.M.)}
+  \begin{itemize}
+    \item Telescoping Arms
+    \item Winch
+    \item Rubber Bands
+    \item Release System
+    \item Zipline Wheel
+  \end{itemize}
+\end{frame}
+% 3D Model of TRM
+
+\begin{frame}{Electrical Components}
+  \begin{itemize}
+    \item H-Bridge Circuit
+    \item Infrared Detection Circuit
+    \item Reflective Object Sensors (QRDs)
+    \item Ultrasound Sensor
+  \end{itemize}
+\end{frame}
+% Collage of Electrical Things
+
+\begin{frame}{Software Design}
+  \begin{itemize}
+    \item Tests
+    \item Saving Data
+    \item TINAH Menu System
+  \end{itemize}
+\end{frame}
+% Screenshot of Code and Picture of TINAH Menu
+
+\begin{frame}{Conclusion}
+  \begin{itemize}
+    \item Favourite Parts
+    \item Summary
+  \end{itemize}
+\end{frame}
+
+
+
+
+
+
+
+
+
+\begin{frame}
+\begin{itemize}
+    \item This one is always shown
+    \item<1-> The first time (i.e. as soon as the slide loads)
+    \item<2-> The second time
+    \item<1-> Also the first time
+    \only<1-1> {This one is shown at the first time, but it will hide soon (on the next event after the slide loads).}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Some background}
+  We start our discussion with some concepts.
+  \pause
+  The first concept we introduce originates with Erd\H os.
+\end{frame}
+
+\begin{frame}
+  \frametitle{`Hidden higher-order concepts?'}
+  \begin{itemize}[<+->]
+  \item The truths of arithmetic which are independent of PA in some 
+  sense themselves `{contain} essentially {\color{blue}{hidden higher-order}},
+   or infinitary, concepts'???
+  \item `Truths in the language of arithmetic which \ldots
+  \item That suggests stronger version of Isaacson's thesis. 
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Example of columns 1}
+    \begin{columns}[c] % the "c" option specifies center vertical alignment
+    \column{.5\textwidth} % column designated by a command
+     Contents of the first column
+    \column{.5\textwidth}
+     Contents split \\ into two lines
+    \end{columns}
+\end{frame}
+ 
+\begin{frame}{Example of columns 2}
+     \begin{columns}[T] % contents are top vertically aligned
+     \begin{column}[T]{5cm} % each column can also be its own environment
+     Contents of first column \\ split into two lines
+     \end{column}
+     \begin{column}[T]{5cm} % alternative top-align that's better for graphics
+     \end{column}
+     \end{columns}
+\end{frame}
+
+\begin{frame}
+   \begin{block}{This is a Block}
+      This is important information
+   \end{block}
+ 
+   \begin{alertblock}{This is an Alert block}
+   This is an important alert
+   \end{alertblock}
+ 
+   \begin{exampleblock}{This is an Example block}
+   This is an example 
+   \end{exampleblock}
+\end{frame}
+
+
+\begin{frame}
+\includemovie[
+poster,
+toolbar, %same as `controls'
+label=BuscadorDelOro.U3D,
+text=Our Robot,
+3Daac=60.000000, 3Droll=0.000000,
+3Dc2c=0.613500 -7.545900 0.855200,
+3Droo=7.618947,
+3Dcoo=0.613470 0.649878 -0.855214,
+3Dlights=CAD,
+]{\linewidth}{\linewidth}{BuscadorDelOro.U3D} 
+\end{frame}
+
+
+
+
+\end{document}
+
+
+
+
+\begin{frame}{Introduction}
+     \begin{columns}[T] % contents are top vertically aligned
+     \begin{column}[T]{5cm} % each column can also be its own environment
+\begin{itemize}
+    \item Challenge Objective
+    \item Challenge Surface
+    \item Overview of Robot
+      \begin{itemize}
+        \item Chassis and Drive System
+        \item Idol Retrieval System (IRS)
+        \item Telescoping Return Mechanism (TRM)
+        \item Electrical Components
+        \item Software Design
+      \end{itemize}
+  \end{itemize}
+     \end{column}
+     \begin{column}[T]{5cm} % alternative top-align that's better for graphics
+\begin{figure}
+   \includegraphics[width= \paperwidth]{ENPHlogo.png}
+\end{figure}
+     \end{column}
+     \end{columns}
+\end{frame}
+

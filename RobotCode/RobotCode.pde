@@ -11,17 +11,23 @@
 #define LOOKUP_PINS 3
 #define NUM_MAINMENU 4
 
-
 // Analog Pins (0-7)
+#define LEFTIR_PIN 1
+#define RIGHTIR_PIN 2
+#define CENTREQRD_PIN 3
 #define LEFTQRD_PIN 4
 #define RIGHTQRD_PIN 5
 #define MENUKNOB_PIN 6
 #define VALUEKNOB_PIN 7
 
-// Digital Pins (0-15)
+// Digital Pins (0-7 Out, 8-15 In)
+#define SONAROUT_PIN 7
+#define SONARIN_PIN 8
+#define COLLECTIONSWITCH_PIN 9
 
 // Motor Pins (0-3)
 #define LEFTMOTOR_PIN 0
+#define CONVEYORMOTOR_PIN 1
 #define RIGHTMOTOR_PIN 2
 
 // Servo Pins (0-2)
@@ -33,8 +39,8 @@
 #define RIGHTQRDTHRESH_EEPROM 1
 #define PROPGAIN_EEPROM 2
 #define DERVGAIN_EEPROM 3
-#define LEFTMOTORSPEEDBASE_EEPROM 4
-#define RIGHTMOTORSPEEDBASE_EEPROM 5
+#define MOTORSPEEDBASE_EEPROM 4
+#define MOTORSPEEDOFFSET_EEPROM 5
 #define MOTORFAST_EEPROM 6
 #define MOTORSLOW_EEPROM 7
 #define SLIGHTADJUST_EEPROM 8
@@ -42,6 +48,12 @@
 #define LARGEERRORMULTIPLIER_EEPROM 10
 #define SERVODELAYTIME_EEPROM 11
 #define SERVOTESTDEFAULTANGLE_EEPROM 12
+#define CENTREQRDTHRESH_EEPROM 13
+#define COLLECTORDEFAULTANGLE_EEPROM 14
+#define SWEEPERDEFAULTANGLE_EEPROM 15
+#define HILLSONARTHRESH_EEPROM 16
+#define EDGESONARTHRESH_EEPROM 17
+#define MOTORSPEEDOFFSETSIGN_EEPROM 18
 
 
 // Adjustable Parameters
@@ -49,20 +61,26 @@ int leftQRD_thresh = EEPROM.read(LEFTQRDTHRESH_EEPROM) * 5;
 int rightQRD_thresh = EEPROM.read(RIGHTQRDTHRESH_EEPROM) * 5;
 int proportional_gain = EEPROM.read(PROPGAIN_EEPROM) * 5;
 int derivative_gain = EEPROM.read(DERVGAIN_EEPROM) * 5;
-int leftMotorSpeed_base = EEPROM.read(LEFTMOTORSPEEDBASE_EEPROM) * 5;
-int rightMotorSpeed_base = EEPROM.read(RIGHTMOTORSPEEDBASE_EEPROM) * 5;
+int motorSpeed_base = EEPROM.read(MOTORSPEEDBASE_EEPROM) * 5;
+int motorSpeed_offset = EEPROM.read(MOTORSPEEDOFFSET_EEPROM) * 5;
 int motorFast = EEPROM.read(MOTORFAST_EEPROM) * 5;
 int motorSlow = EEPROM.read(MOTORSLOW_EEPROM) * 5;
 int slightAdjust = EEPROM.read(SLIGHTADJUST_EEPROM) * 5;
 int lotsAdjust = EEPROM.read(LOTSADJUST_EEPROM) * 5;
-int largeErrorMultiplier = EEPROM.read(LARGEERRORMULTIPLIER_EEPROM);
+int largeErrorMultiplier = EEPROM.read(LARGEERRORMULTIPLIER_EEPROM);	// set to 5 in autonomous code
 int servoDelayTime = EEPROM.read(SERVODELAYTIME_EEPROM);
 int servoDefaultAngle = EEPROM.read(SERVOTESTDEFAULTANGLE_EEPROM) * 5;
+int centreQRD_thresh = EEPROM.read(CENTREQRDTHRESH_EEPROM) * 5;
+int collectorDefaultAngle = EEPROM.read(COLLECTORDEFAULTANGLE_EEPROM);
+int sweeperDefaultAngle = EEPROM.read(SWEEPERDEFAULTANGLE_EEPROM);
+int hillSonarThresh = EEPROM.read(HILLSONARTHRESH_EEPROM);
+int edgeSonarThresh = EEPROM.read(EDGESONARTHRESH_EEPROM);
 
 
 // Program Constants
 int menuKnobPos;
-int refreshDelay = 50;
+static int const refreshDelay = 50;
+
 
 
 
@@ -72,6 +90,12 @@ void setup(){
   RCServo0.attach(RCServo0Output);
   RCServo1.attach(RCServo1Output);
   RCServo2.attach(RCServo2Output);
+  // set servos to upright here
+
+	if(EEPROM.read(MOTORSPEEDOFFSETSIGN_EEPROM) == 1){
+		int motorSpeed_offset = EEPROM.read(MOTORSPEEDOFFSET_EEPROM) * 5;}
+	else{
+		int motorSpeed_offset = EEPROM.read(MOTORSPEEDOFFSET_EEPROM) * -5;}
 }
 
 void loop(){
@@ -111,6 +135,7 @@ void loop(){
 
 	delay(refreshDelay);
 }
+
 
 
 
@@ -193,7 +218,7 @@ void accessDemoList(){
 				break;
 
 			case NEXT_PAGE:
-				LCD.print("< NEXT PAGE >");
+				LCD.print("< PAGE 2 >");
 				if(userMenuSelection()){
 					accessDemoList_page2();}
 				break;
@@ -210,7 +235,9 @@ void accessDemoList(){
 // COMPLETE
 void accessDemoList_page2(){
 	#define TEST_FORWARDDRIVING 0
-	static int const NUM_DEMOMENU = 1;
+	#define TEST_SONARRANGE 1
+	#define TEST_CONVEYOR 2
+	static int const NUM_DEMOMENU = 3;
 	#define NEXT_PAGE 9
 
 	while(!backButton()){
@@ -226,9 +253,20 @@ void accessDemoList_page2(){
 					testFrwdDrive();}	
 				break;
 
+			case TEST_SONARRANGE:	
+				LCD.print("Test Sonar?");	
+				if(userMenuSelection()){
+					testSonar();}	
+				break;
+
+			case TEST_CONVEYOR:	
+				LCD.print("Test Conveyor?");	
+				if(userMenuSelection()){
+					testConveyor();}	
+				break;
 
 			case NEXT_PAGE:
-				LCD.print("< NEXT PAGE >");
+				LCD.print("< PAGE 3 >");
 				if(userMenuSelection()){
 					// adjustDemoList_page3();
 				} break;
@@ -245,8 +283,8 @@ void adjustParameterVals(){
 	#define RIGHT_QRD_THRESH 1
 	#define PROP_GAIN 2
 	#define DERV_GAIN 3
-	#define LEFT_MOTORSPEED_BASE 4
-	#define RIGHT_MOTORSPEED_BASE 5
+	#define MOTORSPEED_BASE 4
+	#define MOTORSPEED_OFFSET 5
 	#define MOTOR_FAST 6
 	#define MOTOR_SLOW 7
 	#define SLIGHT_ADJUST 8
@@ -257,11 +295,13 @@ void adjustParameterVals(){
 	int rightQRDThresh_maxVal = 700;
 	int proportionalGain_maxVal = 100;
 	int derivativeGain_maxVal = 100;
-	int leftmotorSpeedBase_maxVal = 700;
-	int rightmotorSpeedBase_maxVal = 700;
+	int motorSpeedBase_maxVal = 700;
+	int motorSpeedOffset_maxVal = 350;
 	int motorFast_maxVal = 700;
 	int motorSlow_maxVal = 700;
 	int slightAdjust_maxVal = 300;
+
+	int writeVal;
 
 	while(!backButton()){
 
@@ -273,68 +313,86 @@ void adjustParameterVals(){
 			case LEFT_QRD_THRESH:
 				LCD.print("L QRD Thresh");
 				if(userMenuSelection()){
-					EEPROM.write(LEFTQRDTHRESH_EEPROM, (int)((float)paramAdjust(leftQRD_thresh, leftQRDThresh_maxVal)/5.0));}
+					EEPROM.write(LEFTQRDTHRESH_EEPROM, (int)((float)paramAdjust(leftQRD_thresh, leftQRDThresh_maxVal)/5.0));
 					leftQRD_thresh = EEPROM.read(LEFTQRDTHRESH_EEPROM) * 5;
+				}
 				break;	
 
 			case RIGHT_QRD_THRESH:
 				LCD.print("R QRD Thresh");
 				if(userMenuSelection()){
-					EEPROM.write(RIGHTQRDTHRESH_EEPROM, (int)((float)paramAdjust(rightQRD_thresh, rightQRDThresh_maxVal)/5.0));}
+					EEPROM.write(RIGHTQRDTHRESH_EEPROM, (int)((float)paramAdjust(rightQRD_thresh, rightQRDThresh_maxVal)/5.0));
 					rightQRD_thresh = EEPROM.read(RIGHTQRDTHRESH_EEPROM) * 5;
+				}
 				break;	
 
 			case PROP_GAIN:	
 				LCD.print("Prop Gain");
 				if(userMenuSelection()){
-					EEPROM.write(PROPGAIN_EEPROM, (int)((float)paramAdjust(proportional_gain, proportionalGain_maxVal)/5.0));}
+					EEPROM.write(PROPGAIN_EEPROM, (int)((float)paramAdjust(proportional_gain, proportionalGain_maxVal)/5.0));
 					proportional_gain = EEPROM.read(PROPGAIN_EEPROM) * 5;
+				}
 				break;	
 
 			case DERV_GAIN:
 				LCD.print("Derv Gain");
 				if(userMenuSelection()){
-					EEPROM.write(DERVGAIN_EEPROM, (int)((float)paramAdjust(derivative_gain, derivativeGain_maxVal)/5.0));}
+					EEPROM.write(DERVGAIN_EEPROM, (int)((float)paramAdjust(derivative_gain, derivativeGain_maxVal)/5.0));
 					derivative_gain = EEPROM.read(DERVGAIN_EEPROM) * 5;
+				}
 				break;	
 
-			case LEFT_MOTORSPEED_BASE:	
-				LCD.print("L Base MotSpeed");
+			case MOTORSPEED_BASE:	
+				LCD.print("Base MotSpeed");
 				if(userMenuSelection()){
-					EEPROM.write(LEFTMOTORSPEEDBASE_EEPROM, (int)((float)paramAdjust(leftMotorSpeed_base, leftmotorSpeedBase_maxVal)/5.0));}
-					leftMotorSpeed_base = EEPROM.read(LEFTMOTORSPEEDBASE_EEPROM) * 5;
+					EEPROM.write(MOTORSPEEDBASE_EEPROM, (int)((float)paramAdjust(motorSpeed_base, motorSpeedBase_maxVal)/5.0));
+					motorSpeed_base = EEPROM.read(MOTORSPEEDBASE_EEPROM) * 5;
+				}
 				break;
 
-			case RIGHT_MOTORSPEED_BASE:	
-				LCD.print("R Base MotSpeed");
+			case MOTORSPEED_OFFSET:	
+				LCD.print("Offset MotSpeed");
 				if(userMenuSelection()){
-					EEPROM.write(RIGHTMOTORSPEEDBASE_EEPROM, (int)((float)paramAdjust(rightMotorSpeed_base, rightmotorSpeedBase_maxVal)/5.0));}
-					rightMotorSpeed_base = EEPROM.read(RIGHTMOTORSPEEDBASE_EEPROM) * 5;
+					writeVal = (int)((float)paramAdjustNegVals(motorSpeed_offset, motorSpeedOffset_maxVal)/5.0);
+					if(writeVal >= 0){
+						EEPROM.write(MOTORSPEEDOFFSET_EEPROM, writeVal);
+						EEPROM.write(MOTORSPEEDOFFSETSIGN_EEPROM, 1);
+						motorSpeed_offset = EEPROM.read(MOTORSPEEDOFFSET_EEPROM) * 5;
+					} else{
+						EEPROM.write(MOTORSPEEDOFFSET_EEPROM, writeVal);
+						EEPROM.write(MOTORSPEEDOFFSETSIGN_EEPROM, 0);
+						motorSpeed_offset = EEPROM.read(MOTORSPEEDOFFSET_EEPROM) * -5;
+					}
+				}
+
 				break;
 
 			case MOTOR_FAST:
 				LCD.print("MotorFast Speed");
 				if(userMenuSelection()){
-					EEPROM.write(MOTORFAST_EEPROM, (int)((float)paramAdjust(motorFast, motorFast_maxVal)/5.0));}
+					EEPROM.write(MOTORFAST_EEPROM, (int)((float)paramAdjust(motorFast, motorFast_maxVal)/5.0));
 					motorFast = EEPROM.read(MOTORFAST_EEPROM) * 5;
+				}
 				break;	
 
 			case MOTOR_SLOW:
 				LCD.print("MotorSlow Speed");
 				if(userMenuSelection()){
-					EEPROM.write(MOTORSLOW_EEPROM, (int)((float)paramAdjust(motorSlow, motorSlow_maxVal)/5.0));}
+					EEPROM.write(MOTORSLOW_EEPROM, (int)((float)paramAdjust(motorSlow, motorSlow_maxVal)/5.0));
 					motorSlow = EEPROM.read(MOTORSLOW_EEPROM) * 5;
+				}
 				break;
 
 			case SLIGHT_ADJUST:
 				LCD.print("Slight-Straight");
 				if(userMenuSelection()){
-					EEPROM.write(SLIGHTADJUST_EEPROM, (int)((float)paramAdjust(slightAdjust, slightAdjust_maxVal)/5.0));}
+					EEPROM.write(SLIGHTADJUST_EEPROM, (int)((float)paramAdjust(slightAdjust, slightAdjust_maxVal)/5.0));
 					slightAdjust = EEPROM.read(SLIGHTADJUST_EEPROM) * 5;
+				}
 				break;
 
 			case NEXT_PAGE:
-				LCD.print("< NEXT PAGE >");
+				LCD.print("< PAGE 2 >");
 				if(userMenuSelection()){
 					adjustParameterVals_page2();}
 				break;
@@ -350,42 +408,29 @@ void adjustParameterVals(){
 
 // COMPLETE
 void adjustParameterVals_page2(){
+
 	#define LOTS_ADJUST 0
 	#define LARGEERROR_MULTIPLIER 1
 	#define SERVO_DELAYTIME 2
 	#define SERVO_DEFAULTANGLE 3
-	#define INITIALIZE_PARAMS 4
-	static int const NUM_PARAMS = 5;
+	#define CENTRE_QRD 4
+	#define COLLECTOR_DEFAULTANGLE 5
+	#define SWEEPER_DEFAULTANGLE 6
+	#define HILL_SONARTHRESH 7
+	#define EDGE_SONARTHRESH 8
 	#define NEXT_PAGE 9
+	static int const NUM_PARAMS = 10;
 
 	int lotsAdjust_maxVal = 500;
 	int largeErrorMultiplier_maxVal = 10;
 	int servoDelayTime_maxVal = 26;
 	int servoDefaultAngle_maxVal = 185;
+	int centreQRDThresh_maxVal = 700;
+	int collectorDefaultAngle_maxVal = 180;
+	int sweeperDefaultAngle_maxVal = 180;
+	int hillSonarThresh_maxVal = 120;
+	int edgeSonarThresh_maxVal = 120;
 
-		/* To add new param:
-		1) add new EEPROM address
-		2) run EEPROM_Set function
-		3) add new global variable
-		4) add new #define in this block
-		5) add new maxVal
-		6) increment num_params
-		7) add this to switch block:
-				case NEW_PARAM:
-					LCD.print("New Param");
-					if(userMenuSelection()){
-						EEPROM.write(NEWPARAM_EEPROM, (int)((float)paramAdjust(newParam, newParam_maxVal)/5.0));}
-						leftQRD_thresh = EEPROM.read(LEFTQRDTHRESH_EEPROM) * 5;
-					break;
-		8) upload code
-		9) run initEEPROM
-
-		Note: Getting the 4 storage values speeds things up
-			ex. #define SERVOTESTDEFAULTANGLE_EEPROM 12
-				#define SERVO_DEFAULTANGLE 3
-				int servoDefaultAngle = EEPROM.read(SERVOTESTDEFAULTANGLE_EEPROM) * 5;
-				int servoDefaultAngle_maxVal = 180;
-	*/
 
 	while(!backButton()){
 
@@ -426,6 +471,96 @@ void adjustParameterVals_page2(){
 				}
 				break;
 
+			case CENTRE_QRD:
+				LCD.print("C QRD Thresh");
+				if(userMenuSelection()){
+					EEPROM.write(CENTREQRDTHRESH_EEPROM, (int)((float)paramAdjust(centreQRD_thresh, centreQRDThresh_maxVal)/5.0));
+					centreQRD_thresh = EEPROM.read(CENTREQRDTHRESH_EEPROM) * 5;
+				}
+				break;
+
+			case COLLECTOR_DEFAULTANGLE:
+				LCD.print("Coll. DefaultPos");
+				if(userMenuSelection()){
+					EEPROM.write(COLLECTORDEFAULTANGLE_EEPROM, paramAdjustFullRange(collectorDefaultAngle, collectorDefaultAngle_maxVal));
+					collectorDefaultAngle = EEPROM.read(COLLECTORDEFAULTANGLE_EEPROM);
+				}
+				break;
+
+			case SWEEPER_DEFAULTANGLE:
+				LCD.print("Sweep DefaultPos");
+				if(userMenuSelection()){
+					EEPROM.write(SWEEPERDEFAULTANGLE_EEPROM, paramAdjustFullRange(sweeperDefaultAngle, sweeperDefaultAngle_maxVal));
+					sweeperDefaultAngle = EEPROM.read(SWEEPERDEFAULTANGLE_EEPROM);
+				}
+				break;
+
+			case HILL_SONARTHRESH:
+				LCD.print("Hill SonarVal");
+				if(userMenuSelection()){
+					EEPROM.write(HILLSONARTHRESH_EEPROM, paramAdjustFullRange(hillSonarThresh, hillSonarThresh_maxVal));
+					hillSonarThresh = EEPROM.read(HILLSONARTHRESH_EEPROM);
+				}
+				break;
+
+			case EDGE_SONARTHRESH:
+				LCD.print("Edge SonarVal");
+				if(userMenuSelection()){
+					EEPROM.write(EDGESONARTHRESH_EEPROM, paramAdjustFullRange(edgeSonarThresh, edgeSonarThresh_maxVal));
+					edgeSonarThresh = EEPROM.read(EDGESONARTHRESH_EEPROM);
+				}
+				break;
+
+			case NEXT_PAGE:
+				LCD.print("< PAGE 3 >");
+				if(userMenuSelection()){
+					adjustParameterVals_page3();
+				}
+				break;
+		}
+
+		delay(refreshDelay);
+
+	}
+}
+
+// COMPLETE
+void adjustParameterVals_page3(){
+	#define INITIALIZE_PARAMS 0
+	static int const NUM_PARAMS = 1;
+	#define NEXT_PAGE 9
+
+		/* To add new param:
+		1) add new EEPROM address
+		2) update initEEPROM function
+		3) add new global variable
+		4) add new #define in this block
+		5) add new maxVal
+		6) increment num_params
+		7) add this to switch block:
+				case NEW_PARAM:
+					LCD.print("New Param");
+					if(userMenuSelection()){
+						EEPROM.write(NEWPARAM_EEPROM, (int)((float)paramAdjust(newParam, newParam_maxVal)/5.0));}
+						newParam = EEPROM.read(NEWPARAM_EEPROM) * 5;
+					break;
+		8) upload code
+		9) run initEEPROM
+
+		Note: Getting the 4 storage values speeds things up
+			ex. #define SERVOTESTDEFAULTANGLE_EEPROM 12
+				#define SERVO_DEFAULTANGLE 3
+				int servoDefaultAngle = EEPROM.read(SERVOTESTDEFAULTANGLE_EEPROM) * 5;
+				int servoDefaultAngle_maxVal = 180;
+	*/
+
+	while(!backButton()){
+
+		menuKnobPos = getMenuKnobPos(NUM_PARAMS);
+		cleanLCD();
+
+		switch(menuKnobPos){	
+
 			case INITIALIZE_PARAMS:
 				LCD.print("Init EEPROM");
 				if(userMenuSelection()){
@@ -434,7 +569,7 @@ void adjustParameterVals_page2(){
 				break;
 
 			case NEXT_PAGE:
-				LCD.print("< NEXT PAGE >");
+				LCD.print("< PAGE 4 >");
 				if(userMenuSelection()){
 					// adjustParameterVals_page3();
 				}break;
@@ -494,16 +629,15 @@ void lookUpPins(){
 	}
 }
 
-// In Progress (LATER)
+// In Progress
 void runAutonomousMode() {
-	// run competetion code
-	cleanLCD();
-	while(!backButton()){
-		LCD.home();
-		LCD.print("PLACEHOLDER");
-	}
-}
 
+	tapeAndIdols();
+	// IRFollow();
+	// lastIdol();
+	// acquireZipline();
+	// ride2Freedom();
+}
 
 
 
@@ -535,7 +669,7 @@ void analogList(){
 			case PAGE_2:
 				LCD.print("A2: < Unused >");
 				LCD.setCursor(0,1);
-				LCD.print("A3: < Unused >");
+				LCD.print("A3: QRD Centre");
 				break;	
 
 			case PAGE_3:
@@ -600,13 +734,13 @@ void digitalList(){
 			case PAGE_4:
 				LCD.print("D6: < Unused >");
 				LCD.setCursor(0,1);
-				LCD.print("D7: < Unused >");
+				LCD.print("D7: Sonar Out");
 				break;	
 
 			case PAGE_5:
-				LCD.print("D8: < Unused >");
+				LCD.print("D8: Sonar In");
 				LCD.setCursor(0,1);
-				LCD.print("D9: < Unused >");
+				LCD.print("D9: IdolCollect");
 				break;	
 
 			case PAGE_6:
@@ -653,7 +787,7 @@ void motorList(){
 			case PAGE_1:
 				LCD.print("M0: Motor Left");
 				LCD.setCursor(0,1);
-				LCD.print("M1: < Unused >");
+				LCD.print("M1: Conveyor");
 				break;	
 
 			case PAGE_2:
@@ -794,23 +928,32 @@ void testHBridge(){
 
 	}
 
-	motor.speed(LEFTMOTOR_PIN, 0);
-	motor.speed(RIGHTMOTOR_PIN, 0);
+	hitBrakes();
 }
 
 // Complete
 void testTapeFollowing(){
 
+	#define ON 1
+	#define OFF 0
+
 	cleanLCD();
 
-	int leftQRD_curVal, rightQRD_curVal;	
+	static int const LEFT = -1;
+	static int const RIGHT = 1;
+
+	int smallErrorMultiplier = 1;
+	int midErrorMultiplier = 3;
+	// largeErrorMultiplier is adjustable
+
+	int leftQRD_curVal, rightQRD_curVal, centreQRD_curVal;	
 
 	int error_curVal, error_lastVal = 0;
 	int error_timeInErrorState = 0, error_slopeChangeFromLastError;	
 
 	int proportional_curVal, derivative_curVal;	
 
-	int motorSpeed_offset;	
+	int motorSpeed_errorOffset;	
 
 	int timeTicker = 0;
 
@@ -819,21 +962,38 @@ void testTapeFollowing(){
 	while(!backButton()){
 
 	    leftQRD_curVal = analogRead(LEFTQRD_PIN);
-	    rightQRD_curVal = analogRead(RIGHTQRD_PIN);	
+	    rightQRD_curVal = analogRead(RIGHTQRD_PIN);
+	    centreQRD_curVal = analogRead(CENTREQRD_PIN);	
 
-	    if (leftQRD_curVal >= leftQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
-	        error_curVal = 0;
-	    } else if (leftQRD_curVal >= leftQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
-	        error_curVal = -1;
-	    } else if (leftQRD_curVal < leftQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
-	        error_curVal = +1;
-	    } else if (leftQRD_curVal < leftQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
-	      if (error_lastVal > 0) {
-	          error_curVal = -largeErrorMultiplier;
-	      } else {
-	          error_curVal = largeErrorMultiplier;
-	      }
-	    }	
+
+		if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = 0;		
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = 0;		
+
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = LEFT * smallErrorMultiplier;		
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = RIGHT * smallErrorMultiplier;		
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = RIGHT * midErrorMultiplier;		
+
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = LEFT * midErrorMultiplier;
+		    
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		  if (error_lastVal > 0) {
+		     	error_curVal = RIGHT * largeErrorMultiplier;		
+
+		  } else if (error_lastVal < 0) {
+		     	error_curVal = LEFT * largeErrorMultiplier;
+		  } else {
+		  		error_curVal = 0;
+		  }
+		}	
 
 	    if (error_curVal != error_lastVal) {
 	        error_slopeChangeFromLastError = error_timeInErrorState + 1;
@@ -845,19 +1005,19 @@ void testTapeFollowing(){
 	    proportional_curVal = proportional_gain * error_curVal;
 	    derivative_curVal = (int)((float) derivative_gain * (float)(error_curVal - error_lastVal) / (float)(error_slopeChangeFromLastError + error_timeInErrorState));	
 
-	    motorSpeed_offset = proportional_curVal + derivative_curVal;	
+	    motorSpeed_errorOffset = proportional_curVal + derivative_curVal;	
 
 	    if (motorSpeed_offset < -700) {
 	        motor.speed(LEFTMOTOR_PIN, 700);
-	        motor.speed(RIGHTMOTOR_PIN, rightMotorSpeed_base);
+	        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base - motorSpeed_offset);
 
 	    } else if (motorSpeed_offset > 700) {
-	        motor.speed(LEFTMOTOR_PIN, leftMotorSpeed_base);
+	        motor.speed(LEFTMOTOR_PIN, motorSpeed_base + motorSpeed_offset);
 	        motor.speed(RIGHTMOTOR_PIN, 700);
 
 	    } else {
-	        motor.speed(LEFTMOTOR_PIN, leftMotorSpeed_base - motorSpeed_offset);
-	        motor.speed(RIGHTMOTOR_PIN, rightMotorSpeed_base + motorSpeed_offset);
+	        motor.speed(LEFTMOTOR_PIN, motorSpeed_base + motorSpeed_offset - motorSpeed_errorOffset);
+	        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base - motorSpeed_offset + motorSpeed_errorOffset);
 	    }
 
 	    if (timeTicker == 100) {
@@ -866,13 +1026,13 @@ void testTapeFollowing(){
 	        cleanLCD();
 
 	        LCD.print("L MOT: ");
-	        LCD.print(leftMotorSpeed_base - motorSpeed_offset, DEC);	
+	        LCD.print(motorSpeed_base + motorSpeed_offset - motorSpeed_errorOffset, DEC);	
 
 	        LCD.setCursor(0,1);
 
 	        LCD.print("R MOT: ");
-	        LCD.print(rightMotorSpeed_base + motorSpeed_offset, DEC);
-	    }	
+	        LCD.print(motorSpeed_base - motorSpeed_offset + motorSpeed_errorOffset, DEC);
+	    }
 
 	    error_lastVal = error_curVal;
 	    timeTicker++;
@@ -880,43 +1040,101 @@ void testTapeFollowing(){
 
 	}
 
-	motor.speed(LEFTMOTOR_PIN, 0);
-	motor.speed(RIGHTMOTOR_PIN, 0);	
+	hitBrakes();
 }
 
 // Complete
 void testQRDs(){
 
-	int leftQRD_curVal, rightQRD_curVal;
+	#define ALL_QRDS 0
+	#define LEFT_QRD 1
+	#define RIGHT_QRD 2
+	#define CENTRE_QRD 3
+	static int const NUM_QRDSTATES = 4;
+
+	int leftQRD_curVal, rightQRD_curVal, centreQRD_curVal;
+
 
 	while(!backButton()){
 
-		cleanLCD();	
+		cleanLCD();
+		menuKnobPos = getMenuKnobPos(NUM_QRDSTATES);
 
 		leftQRD_curVal = analogRead(LEFTQRD_PIN);
 		rightQRD_curVal = analogRead(RIGHTQRD_PIN);			
+		centreQRD_curVal = analogRead(CENTREQRD_PIN);
 
-		LCD.print("L QRD: ");
-		if (leftQRD_curVal > leftQRD_thresh) {
-		  	LCD.print(" ON ");
-		} else {
-		    LCD.print("OFF ");
+		switch(menuKnobPos){	
+
+			case ALL_QRDS:
+				LCD.print("L");
+				if (leftQRD_curVal >= leftQRD_thresh) {
+				  	LCD.print("ON");
+				} else {
+				    LCD.print("OFF");}
+				LCD.print(leftQRD_curVal, DEC);
+
+				LCD.print(" R");
+				if (rightQRD_curVal >= rightQRD_thresh) {
+				  	LCD.print("ON");
+				} else {
+				    LCD.print("OFF");}
+				LCD.print(rightQRD_curVal, DEC);
+
+				LCD.setCursor(0,1);	
+				LCD.print("C");
+				if (centreQRD_curVal >= centreQRD_thresh) {
+				  	LCD.print("ON");
+				} else {
+				    LCD.print("OFF");}
+				LCD.print(centreQRD_curVal, DEC);
+
+				break;	
+
+			case LEFT_QRD:
+				LCD.print("L QRD: ");
+				if (leftQRD_curVal >= leftQRD_thresh) {
+				  	LCD.print(" ON ");
+				} else {
+				    LCD.print("OFF ");
+				}
+				LCD.setCursor(0,1);	
+				LCD.print(leftQRD_curVal, DEC);	
+
+				break;	
+
+			case RIGHT_QRD:
+				LCD.print("R QRD: ");
+				if (rightQRD_curVal >= rightQRD_thresh) {
+				  	LCD.print(" ON ");
+				} else {
+				    LCD.print("OFF ");
+				}
+				LCD.setCursor(0,1);	
+				LCD.print(rightQRD_curVal, DEC);	
+
+				break;	
+
+			case CENTRE_QRD:
+				LCD.print("C QRD: ");
+				if (centreQRD_curVal >= centreQRD_thresh) {
+				  	LCD.print(" ON ");
+				} else {
+				    LCD.print("OFF ");
+				}
+				LCD.setCursor(0,1);	
+				LCD.print(centreQRD_curVal, DEC);	
+
+				break;	
+
+			default:
+				break;
+
 		}
-		LCD.print(leftQRD_curVal, DEC);		
-
-		LCD.setCursor(0,1);	
-
-		LCD.print("R QRD: ");
-		if (rightQRD_curVal > rightQRD_thresh) {
-			LCD.print(" ON ");
-		} else {
-		   	LCD.print("OFF ");
-		}
-		LCD.print(rightQRD_curVal, DEC);	
 
 		delay(refreshDelay);
 
-	}	
+	}
 }
 
 // Complete
@@ -943,8 +1161,8 @@ void testFrwdDrive(){
 				cleanLCD();
 				LCD.print("EVEN Straight");
 
-				leftSpeed = leftMotorSpeed_base;
-				rightSpeed = rightMotorSpeed_base;
+				leftSpeed = motorSpeed_base + motorSpeed_offset;
+				rightSpeed = motorSpeed_base - motorSpeed_offset;
 
 				if (leftSpeed > 700){
 					leftSpeed = 700;}
@@ -967,8 +1185,8 @@ void testFrwdDrive(){
 				LCD.print(slightAdjust, DEC);
 				LCD.print(" Left");
 
-				leftSpeed = leftMotorSpeed_base + slightAdjust;
-				rightSpeed = rightMotorSpeed_base;
+				leftSpeed = motorSpeed_base + motorSpeed_offset + slightAdjust;
+				rightSpeed = motorSpeed_base - motorSpeed_offset;
 
 				if (leftSpeed > 700){
 					leftSpeed = 700;}
@@ -991,8 +1209,8 @@ void testFrwdDrive(){
 				LCD.print(slightAdjust, DEC);
 				LCD.print(" Right");
 
-				leftSpeed = leftMotorSpeed_base;
-				rightSpeed = rightMotorSpeed_base + slightAdjust;
+				leftSpeed = motorSpeed_base + motorSpeed_offset;
+				rightSpeed = motorSpeed_base - motorSpeed_offset + slightAdjust;
 
 				if (leftSpeed > 700){
 					leftSpeed = 700;}
@@ -1015,8 +1233,8 @@ void testFrwdDrive(){
 				LCD.print(lotsAdjust, DEC);
 				LCD.print(" Left");
 
-				leftSpeed = leftMotorSpeed_base + lotsAdjust;
-				rightSpeed = rightMotorSpeed_base;
+				leftSpeed = motorSpeed_base + motorSpeed_offset + lotsAdjust;
+				rightSpeed = motorSpeed_base - motorSpeed_offset;
 
 				if (leftSpeed > 700){
 					leftSpeed = 700;}
@@ -1039,8 +1257,8 @@ void testFrwdDrive(){
 				LCD.print(lotsAdjust, DEC);
 				LCD.print(" Right");
 
-				leftSpeed = leftMotorSpeed_base;
-				rightSpeed = rightMotorSpeed_base + lotsAdjust;
+				leftSpeed = motorSpeed_base + motorSpeed_offset;
+				rightSpeed = motorSpeed_base - motorSpeed_offset + lotsAdjust;
 
 				if (leftSpeed > 700){
 					leftSpeed = 700;}
@@ -1065,8 +1283,7 @@ void testFrwdDrive(){
 
 	}
 
-	motor.speed(LEFTMOTOR_PIN, 0);
-	motor.speed(RIGHTMOTOR_PIN, 0);
+	hitBrakes();
 }
 
 // Complete
@@ -1085,7 +1302,7 @@ void testServos(){
 		switch(menuKnobPos){	
 
 			case COLLECT_ARM:
-				LCD.print("Collecter Arm");
+				LCD.print("Collector Arm");
 				if(userMenuSelection()){
 					turnServo(COLLECTORSERVO_PIN);
 				}
@@ -1106,6 +1323,173 @@ void testServos(){
 		delay(refreshDelay);
 	}
 }
+
+// Complete
+void testIdolGrab(){
+
+	int currentCollectorAngle;
+	int currentSweeperAngle;
+
+	int state;
+
+	int collectorMaxAngle = 180;
+	int collectorMinAngle = 0;
+	int sweeperMaxAngle = 0;
+	static int const delayTime = 200;
+
+	countdown();
+
+	RCServo0.write(collectorDefaultAngle);
+	RCServo1.write(sweeperDefaultAngle);
+	delay(1500);
+
+	currentCollectorAngle = collectorDefaultAngle;
+	currentSweeperAngle = sweeperDefaultAngle;
+
+	while(!backButton()){
+
+		cleanLCD();
+		LCD.print("Looking...");
+
+		if(collectorSwitch()){
+			state = 1;
+			while(!backButton()){
+				idolCollect(currentCollectorAngle, currentSweeperAngle);
+				state++;
+			}
+		}
+
+		delay(refreshDelay);
+
+	}
+}
+
+// Complete
+void testSwitches(){
+
+	int displayDelay = 1000;
+
+	while(!backButton()){
+		cleanLCD();
+		LCD.print("Press Switch");
+
+		if (collectorSwitch()){
+			cleanLCD();
+			LCD.print("Collector Active");
+			delay(displayDelay);
+		}	
+
+		delay(refreshDelay);
+	}
+}
+
+// Complete
+void testSonar(){
+
+  long dist;
+
+	while(!backButton()){
+
+		dist = sonarRange();
+
+		LCD.print("Dist: ");
+		LCD.print(dist, DEC);
+		LCD.print("in");
+
+		/*
+		if (dist >= edgeDetect){
+			cleanBottomLine();
+			LCD.print("Edge Detected");
+		} else if(dist <= hillDetect){
+			cleanBottomLine();
+			LCD.print("Hill Detected");
+		} else {
+			cleanBottomLine();
+			LCD.print("Default Detect");
+		}
+		*/
+
+		delay(refreshDelay);
+	}
+}
+
+// Complete
+void testConveyor(){
+
+	int conveyorSpeed = getValueKnobPos(1400)-700;
+
+	while(!backButton()){
+		conveyorSpeed = getValueKnobPos(1400)-700;
+		motor.speed(CONVEYORMOTOR_PIN, conveyorSpeed);
+
+		LCD.print("Conv Speed: ");
+		LCD.print(conveyorSpeed, DEC);
+
+		delay(refreshDelay);
+	}
+}
+
+// In Progress (CURRENT)
+void testIR(){
+
+	int leftIR_curVal, rightIR_curVal;
+
+	int minThresh = (int)(0.300 * 1024.0/5.0);
+	int maxThresh = 1023; // min = 61, max = 1023
+
+
+	while(!backButton()){
+
+		cleanLCD();
+
+		leftIR_curVal = analogRead(LEFTIR_PIN);
+		rightIR_curVal = analogRead(RIGHTIR_PIN);
+
+		LCD.print("L IR: ");
+		if (leftIR_curVal >= maxThresh || leftIR_curVal < minThresh){
+			LCD.print("OOR");
+		} else{
+			LCD.print(leftIR_curVal, DEC);}
+
+		LCD.setCursor(0,1);	
+
+		LCD.print("R IR: ");
+		if (rightIR_curVal >= maxThresh || rightIR_curVal < minThresh){
+			LCD.print("OOR");
+		} else{
+			LCD.print(rightIR_curVal, DEC);}
+
+		delay(refreshDelay);
+
+	}
+}
+
+// In Progress (LATER)
+void testTelescopingArm(){
+	cleanLCD();
+	while(!backButton()){
+		LCD.home();
+		LCD.print("TELESCOPE ARM");
+		LCD.setCursor(0,1);
+		LCD.print("In Progress...");  		
+	}
+}
+
+// In Progress (LATER)
+void testZiplineTrigger(){
+	cleanLCD();
+	while(!backButton()){
+		LCD.home();
+		LCD.print("ZL Trigger");
+		LCD.setCursor(0,1);
+		LCD.print("In Progress...");  		
+	}
+}
+
+
+
+
+// Demo Assist Programs
 
 // Complete
 void turnServo(int servoNum){
@@ -1191,75 +1575,276 @@ void turnServo(int servoNum){
 	}
 }
 
-// In Progress (NEXT)
-void testIdolGrab(){
+// Complete
+void idolCollect(int currentCollectorAngle, int currentSweeperAngle){
+
+
+	// make this breakable
+
+
+	int collectorMaxAngle = 0;
+	int collectorMinAngle = 180;
+	int sweeperMaxAngle = 29;
+	static int const delayTime = 500;
+
+	// start conveyor motor
 
 	cleanLCD();
+	LCD.print("Collector:");
+	LCD.setCursor(0,1);
+	LCD.print("Touch Idol");
+	turnServo2Angle(collectorMinAngle, currentCollectorAngle, COLLECTORSERVO_PIN);
+	delay(delayTime);		
+
+	cleanLCD();
+	LCD.print("Collector:");
+	LCD.setCursor(0,1);
+	LCD.print("Raise Arm");
+	turnServo2Angle(collectorMaxAngle, collectorMinAngle, COLLECTORSERVO_PIN);
+	delay(delayTime);		
+
+	cleanLCD();
+	LCD.print("Sweeper:");
+	LCD.setCursor(0,1);
+	LCD.print("Deposit Idol");
+	turnServo2Angle(sweeperMaxAngle, currentSweeperAngle, SWEEPERSERVO_PIN);
+	delay(delayTime);		
+
+	cleanLCD();
+	LCD.print("Coll. + Sweep:");
+	LCD.setCursor(0,1);
+	LCD.print("Return Home");
+	turnServo2Angle(sweeperDefaultAngle, sweeperMaxAngle, SWEEPERSERVO_PIN);
+	turnServo2Angle(collectorDefaultAngle, collectorMaxAngle, COLLECTORSERVO_PIN);
+	delay(delayTime);
+
+	// stop conveyor motor
+}
+
+// Complete
+void tapeAndIdols(){
+
+	#define ON 1
+	#define OFF 0
+
+	cleanLCD();
+
+	static int const LEFT = -1;
+	static int const RIGHT = 1;
+
+	int smallErrorMultiplier = 1;
+	int midErrorMultiplier = 3;
+	int largeErrorMultiplier = 5;
+
+	int hillMode = OFF;
+
+	int leftQRD_curVal, rightQRD_curVal, centreQRD_curVal;	
+
+	int error_curVal, error_lastVal = 0;
+	int error_timeInErrorState = 0, error_slopeChangeFromLastError;	
+
+	int proportional_curVal, derivative_curVal;	
+
+	int motorSpeed_errorOffset;	
+
+	int timeTicker = 0;
+
+	countdown();
+
+	RCServo0.write(collectorDefaultAngle);
+	RCServo1.write(sweeperDefaultAngle);
+	delay(1500);
+
 	while(!backButton()){
-		LCD.home();
-		LCD.print("IDOL GRAB");
-		LCD.setCursor(0,1);
-		LCD.print("In Progress...");  		
+
+	    leftQRD_curVal = analogRead(LEFTQRD_PIN);
+	    rightQRD_curVal = analogRead(RIGHTQRD_PIN);
+	    centreQRD_curVal = analogRead(CENTREQRD_PIN);	
+
+
+		if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = 0;
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = 0;	
+
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = LEFT * smallErrorMultiplier;	
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal >= centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = RIGHT * smallErrorMultiplier;		
+
+		} else if (leftQRD_curVal >= leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		    error_curVal = RIGHT * midErrorMultiplier;		
+
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal >= rightQRD_thresh) {
+		    error_curVal = LEFT * midErrorMultiplier;
+		    
+		} else if (leftQRD_curVal < leftQRD_thresh && centreQRD_curVal < centreQRD_thresh && rightQRD_curVal < rightQRD_thresh) {
+		  if (error_lastVal > 0) {
+		     	error_curVal = RIGHT * largeErrorMultiplier;		
+
+		  } else if (error_lastVal < 0) {
+		     	error_curVal = LEFT * largeErrorMultiplier;
+		  } else {
+		  		error_curVal = 0;
+		  }
+		}	
+
+	    if (error_curVal != error_lastVal) {
+	        error_slopeChangeFromLastError = error_timeInErrorState + 1;
+	        error_timeInErrorState = 0;
+	    } else {
+	        error_slopeChangeFromLastError = 0;
+	    }	
+
+	    proportional_curVal = proportional_gain * error_curVal;
+	    derivative_curVal = (int)((float) derivative_gain * (float)(error_curVal - error_lastVal) / (float)(error_slopeChangeFromLastError + error_timeInErrorState));	
+
+	    motorSpeed_errorOffset = proportional_curVal + derivative_curVal;
+
+	    if (timeTicker == 100) {
+	        timeTicker = 0;	
+	        dispError(error_curVal);
+	    }	
+
+	    if (motorSpeed_offset < -700) {
+	        motor.speed(LEFTMOTOR_PIN, 700);
+	        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base - motorSpeed_offset);
+
+	    } else if (motorSpeed_offset > 700) {
+	        motor.speed(LEFTMOTOR_PIN, motorSpeed_base + motorSpeed_offset);
+	        motor.speed(RIGHTMOTOR_PIN, 700);
+
+	    } else {
+	        motor.speed(LEFTMOTOR_PIN, motorSpeed_base + motorSpeed_offset - motorSpeed_errorOffset);
+	        motor.speed(RIGHTMOTOR_PIN, motorSpeed_base - motorSpeed_offset + motorSpeed_errorOffset);
+	    }
+
+	    if(collectorSwitch()){
+			hitBrakes();
+			idolCollect(collectorDefaultAngle, sweeperDefaultAngle);
+		}
+
+	    /*
+	    if (sonarRange() <= hillSonarThresh){
+	    	leftMotorSpeed_base = leftMotorSpeed_base + 150;
+	    	rightMotorSpeed_base = leftMotorSpeed_base + 150;
+	    	hillMode = ON;
+		} else if(sonarRange() >= edgeSonarThresh){
+			motor.speed(LEFTMOTOR_PIN, 0);
+			motor.speed(RIGHTMOTOR_PIN, 0);
+		}
+
+		if (hillMode == ON && sonarRange() > hillSonarThresh) {
+			hillMode = OFF;
+			leftMotorSpeed_base = leftMotorSpeed_base - 150;
+	    	rightMotorSpeed_base = leftMotorSpeed_base - 150;
+		}
+		*/
+
+	    error_lastVal = error_curVal;
+	    timeTicker++;
+	    error_timeInErrorState++; 	
+
+	}
+
+	/*
+	leftMotorSpeed_base = EEPROM.read(LEFTMOTORSPEEDBASE_EEPROM) * 5;
+	rightMotorSpeed_base = EEPROM.read(RIGHTMOTORSPEEDBASE_EEPROM) * 5;
+	*/
+
+	hitBrakes();
+}
+
+// Complete
+void dispError(int error_curVal){
+
+	cleanLCD();
+
+	switch(error_curVal){
+		case 0:
+			LCD.print("     ######     ");
+			LCD.setCursor(0,1);
+			LCD.print("     ######     ");
+			break;
+		case -1:
+			LCD.print("###");
+			LCD.setCursor(0,1);
+			LCD.print("###             ");
+			break;
+		case -3:
+			LCD.print("#####           ");
+			LCD.setCursor(0,1);
+			LCD.print("#####           ");
+			break;
+		case -5:
+			LCD.print("########        ");
+			LCD.setCursor(0,1);
+			LCD.print("########        ");
+			break;
+		case 1:
+			LCD.print("             ###");
+			LCD.setCursor(0,1);
+			LCD.print("             ###");
+			break;
+		case 3:
+			LCD.print("           #####");
+			LCD.setCursor(0,1);
+			LCD.print("           #####");
+			break;
+		case 5:
+			LCD.print("        ########");
+			LCD.setCursor(0,1);
+			LCD.print("        ########");
+			break;
 	}
 }
 
-// In Progress (LATER)
-void testSwitches(){
-	cleanLCD();
-	while(!backButton()){
-		LCD.home();
-		LCD.print("SWITCHES");
-		LCD.setCursor(0,1);
-		LCD.print("In Progress...");  		
-	}
+// Complete
+long sonarRange() {
+	digitalWrite(SONAROUT_PIN, LOW);
+	delayMicroseconds(2);
+	digitalWrite(SONAROUT_PIN, HIGH);
+	delayMicroseconds(5);
+	digitalWrite(SONAROUT_PIN, LOW);
+
+	return pulseIn(SONARIN_PIN, HIGH)/148.0;
 }
 
-// In Progress (LATER)
-void testIR(){
-	cleanLCD();
-	while(!backButton()){
-		LCD.home();
-		LCD.print("IR");
-		LCD.setCursor(0,1);
-		LCD.print("In Progress...");  		
-	}
+// Complete
+void hitBrakes(){
+	int leftBrakeSpeed = 0;
+	int rightBrakeSpeed = 0;
+	motor.speed(LEFTMOTOR_PIN, leftBrakeSpeed);
+	motor.speed(RIGHTMOTOR_PIN, rightBrakeSpeed);	
 }
 
-// In Progress (LATER)
-void testTelescopingArm(){
-	cleanLCD();
-	while(!backButton()){
-		LCD.home();
-		LCD.print("TELESCOPE ARM");
-		LCD.setCursor(0,1);
-		LCD.print("In Progress...");  		
-	}
+
+
+
+// Digital Booleans
+
+bool collectorSwitch(){
+	if (digitalRead(COLLECTIONSWITCH_PIN)){
+		return true;}
+	return false;
 }
 
-// In Progress (LATER)
-void testZiplineTrigger(){
-	cleanLCD();
-	while(!backButton()){
-		LCD.home();
-		LCD.print("ZL Trigger");
-		LCD.setCursor(0,1);
-		LCD.print("In Progress...");  		
-	}
-}
 
 
 
 // Abstracted Helper Functions
 
 int getMenuKnobPos(int numPos){
-	int userSet = (int)(1.05*knob(MENUKNOB_PIN) * ((float)numPos)/1024.0);
+	int userSet = (int)(1.2*knob(MENUKNOB_PIN) * ((float)numPos)/1024.0);
 	if (userSet >= numPos){
 		return numPos-1;}
 	return userSet;
 }
 
 int getValueKnobPos(int numPos){
-	int userSet = (int)(1.05*knob(VALUEKNOB_PIN) * ((float)numPos)/1024.0);
+	int userSet = (int)(1.2*knob(VALUEKNOB_PIN) * ((float)numPos)/1024.0);
 		if (userSet >= numPos){
 		return numPos-1;}
 	return userSet;
@@ -1287,10 +1872,9 @@ bool userMenuSelection(){
 bool enterButton(){
 	// get state of enter button
 
-	bool enterButtonState = false;
 	int debounceDelay = 500;
 
-	if (startbutton() && !enterButtonState) {    
+	if (startbutton()) {    
 		delay(debounceDelay);       
         return true;
     }  else {
@@ -1301,10 +1885,9 @@ bool enterButton(){
 bool backButton(){
 	// get state of back button
 
-	bool backButtonState = false;
 	int debounceDelay = 500;
 
-	if (stopbutton() && !backButtonState) {
+	if (stopbutton()) {
 		delay(debounceDelay);
         return true;
     } else {
@@ -1373,6 +1956,37 @@ int paramAdjust(int originalParam, int maxVal){
 	return originalParam;
 }
 
+int paramAdjustNegVals(int originalParam, int maxVal){
+
+	int tempParam;
+	int newParam;
+	int enterDelay = 1500;
+
+	while(!backButton()){
+		cleanBottomLine();
+
+		tempParam = 2 * getValueKnobPos((int)((float)maxVal/2.5)) - (int)((float)maxVal/2.5);
+		tempParam = 2.5 * tempParam;
+
+		LCD.print(tempParam, DEC);
+		LCD.print(" Cur: ");
+		LCD.print(originalParam, DEC);
+
+		if(enterButton()){
+			newParam = tempParam;
+			cleanBottomLine();
+			LCD.print("New: ");
+			LCD.print(newParam, DEC);
+			delay(enterDelay);
+			return newParam;
+		}
+
+		delay(refreshDelay);
+	}
+
+	return originalParam;
+}
+
 int paramAdjustFullRange(int originalParam, int maxVal){
 
 	int tempParam;
@@ -1408,41 +2022,70 @@ int paramAdjustFullRange(int originalParam, int maxVal){
 	return originalParam;
 }
 
+void turnServo2Angle(int destinationAngle, int currentAngle, int servoNum){
+
+	while (currentAngle != destinationAngle) {
+
+		if (currentAngle > destinationAngle){
+			currentAngle --;
+		} else if (currentAngle < destinationAngle){
+			currentAngle ++;}	
+
+		switch(servoNum){	
+			case 0:
+				RCServo0.write(currentAngle);
+				break;	
+			case 1:
+				RCServo1.write(currentAngle);
+				break;	
+			case 2:
+				RCServo2.write(currentAngle);
+				break;
+		}	
+
+		delay(servoDelayTime);
+	}
+}
+
 void initEEPROM(){
 
 	// EEPROM.write(0, ((int)300.0/5.0)); 	// leftQRD_thresh
 	// EEPROM.write(1, ((int)300.0/5.0)); 	// rightQRD_thresh
 	// EEPROM.write(2, ((int)30.0/5.0)); 	// proportional_gain
 	// EEPROM.write(3, ((int)0.0/5.0)); 	// derivative_gain
-	// EEPROM.write(4, ((int)300.0/5.0)); 	// leftMotorSpeed_base
-	// EEPROM.write(5, ((int)300.0/5.0)); 	// rightMotorSpeed_base
+	// EEPROM.write(4, ((int)325.0/5.0)); 	// motorSpeed_base
+	// EEPROM.write(5, ((int)25.0/5.0)); 	// motorSpeed_offset
 	// EEPROM.write(6, ((int)700.0/5.0)); 	// motorFast
 	// EEPROM.write(7, ((int)350.0/5.0)); 	// motorSlow 
 	// EEPROM.write(8, ((int)50.0/5.0)); 	// slightAdjustMotor
 	// EEPROM.write(9, ((int)100.0/5.0)); 	// lotsAdjustMotor
-	// EEPROM.write(10, 3); 				// largeErrorMulitplier 
+	// EEPROM.write(10, 5); 				// largeErrorMulitplier 
 	// EEPROM.write(11, 10); 				// servoDelayTime
 	// EEPROM.write(12, ((int)0.0/5.0)); 	// servoDefaultAngle
+	// EEPROM.write(13, ((int)300.0/5.0)); 	// centreQRD_thresh
+	// EEPROM.write(14, 20); 				// collectorDefaultAngle
+	// EEPROM.write(15, 20); 				// sweeperDefaultAngle
+	// EEPROM.write(16, 3);					// hillSonarThresh
+	// EEPROM.write(17, 24);				// edgeSonarThresh
+	// EEPROM.write(18, 1);					// motorSpeedOffsetSign
+
 
 	cleanLCD();
-	LCD.print("Params Done");
+	LCD.print("Params Set");
 	delay(1500);
 }
 
 
-
-
-// Default Menu Setup
+// Default Menu Template
 /*	
 	#define CASE_0 0
 	#define CASE_1 1
-
-	int num_cases = 2;
+	static int const NUM_CASES = 2;
 
 	while(!backButton()){
 
 		cleanLCD();
-		menuKnobPos = getMenuKnobPos(num_cases);
+		menuKnobPos = getMenuKnobPos(NUM_CASES);
 
 		switch(menuKnobPos){	
 
@@ -1468,6 +2111,5 @@ void initEEPROM(){
 		delay(refreshDelay);
 	}
 */
-
 
 
